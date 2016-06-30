@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+    {% verbatim %}
+        <script type="text/javascript">
+            var myServices = angular.module('myServices', ['ngResource', 'chart.js']).config(
+            function($httpProvider) {
+                $httpProvider.defaults.xsrfCookieName = 'csrftoken';
+                $httpProvider.defaults.xsrfHeaderName = 'X-CSRFToken';
+            });
+
+            myServices.factory('Factura', ['$resource', function($resource) {
+                return $resource('/crud/list/', {'pk': '@pk'}, {
+                });
+            }]);
+
+            myServices.controller('myCtrl', ['$scope', 'Factura', function ($scope, Factura) {
+                $scope.formData = {};
+                // Query returns an array of objects, MyModel.objects.all() by default
+                $scope.models = Factura.query();
+
+                $scope.delete = function() {
+                    if($scope.formData.codigo) {
+                        $scope.factura = Factura.get({pk: $scope.formData.codigo});
+                        $scope.factura.$promise.then(function(data) {
+                            data.$remove();
+                            window.location.href = '/index/';
+                        });
+                    }
+                };
+            }]);
+
+            myServices.controller("BarCtrl", ['$scope', 'Factura', function ($scope, Factura) {
+                $scope.models = Factura.query();
+                $scope.models.$promise.then(function(data) {
+                    $scope.labels = [];
+                    $scope.series = ['Año 2016'];
+
+                    $scope.data = [
+                        []
+                    ];
+
+                    angular.forEach($scope.models, function(value, key){
+                        $scope.labels.push(value.fecha);
+                        $scope.data[0].push(value.total);
+                    });
+                });
+            }]);
+
+            myServices.controller("RadarCtrl", ['$scope', 'Factura', function ($scope, Factura) {
+                $scope.models = Factura.query();
+                $scope.models.$promise.then(function(data) {
+                    $scope.labels = [];
+
+                    $scope.data = [
+                        []
+                    ];
+
+                    angular.forEach($scope.models, function(value, key){
+                        $scope.labels.push(value.fecha);
+                        $scope.data[0].push(value.total);
+                    });
+                });
+            }]);
+        </script>
+
+        <div class="table-responsive">
+            <form class="table-responsive" ng-controller="myCtrl">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Cliente</th>
+                            <th>Fecha de emisión</th>
+                            <th>Inicio periodo</th>
+                            <th>Fin periodo</th>
+                            <th>Total</th>
+                            <th>&nbsp;</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr ng-repeat="n in models">
+                            <td><a ng-href="/crud/item/?pk={{ n.pk }}">{{ n.pk }}</a></td>
+                            <td>{{ n.cliente }}</td>
+                            <td>{{ n.fecha }}</td>
+                            <td>{{ n.inicio_periodo }}</td>
+                            <td>{{ n.fin_periodo }}</td>
+                            <td>{{ n.total }}</td>
+                            <td><input type="radio" ng-model="formData.codigo" ng-value="'{{ n.pk }}'" /></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="buttons">
+                    <a href="/crud/item/" class="btn btn-primary">Crear nueva factura</a>
+                    <button type="button" ng-click="delete()" class="btn btn-danger">Eliminar factura</button>
+                    <div class="clear"></div>
+                </div>
+            </form>
+        </div> 
+    {% endverbatim %}
+    <div class="divChart .col-xs-6" ng-controller="BarCtrl">
+        <canvas id="bar" class="chart chart-bar" chart-data="data" chart-labels="labels" chart-series="series"></canvas>
+    </div>
+    <div class="divChart .col-xs-6" ng-controller="RadarCtrl">
+        <canvas id="radar" class="chart chart-radar" chart-data="data" chart-options="options" chart-labels="labels"></canvas>
+    </div>
+    <div class="clear"></div>
+{% endblock %}

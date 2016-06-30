@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+    <script type="text/javascript">
+        var myServices = angular.module('myServices', ['ngResource', 'ngRoute']).config(
+            function($interpolateProvider, $httpProvider, $routeProvider, $locationProvider) {
+                $interpolateProvider.startSymbol('{$');
+                $interpolateProvider.endSymbol('$}');
+                $httpProvider.defaults.xsrfCookieName = 'csrftoken';
+                $httpProvider.defaults.xsrfHeaderName = 'X-CSRFToken';
+
+                // enable HTML5mode to disable hashbang urls
+                $locationProvider.html5Mode({
+                    enabled: true,
+                    requireBase: false
+                });
+        });
+
+        myServices.factory('Factura', ['$resource', function($resource) {
+            return $resource('/crud/list/', {'pk': '@pk'}, {
+            });
+        }]);
+
+        myServices.controller('myCtrl', ['$scope', '$location', 'Factura', function ($scope, $location, Factura) {
+            var paramValue = $location.search().pk;
+            $scope.init = function() {
+                if(paramValue) {
+                    $scope.factura = Factura.get({pk: paramValue});
+                    $scope.factura.$promise.then(function(data) {
+                        $scope.codigo = data.pk; 
+                        $scope.cliente = data.cliente;
+                        $scope.fecha = data.fecha;
+                        $scope.inicio_periodo = data.inicio_periodo;
+                        $scope.fin_periodo = data.fin_periodo;
+                        $scope.total = data.total;
+                    });
+                }
+            };
+
+            $scope.add = function() {
+                if(paramValue) {
+                    $scope.factura = Factura.get({pk: $scope.codigo});
+                    $scope.factura.$promise.then(function(data) {
+                        data.codigo = data.pk
+                        data.cliente = $scope.cliente;
+                        data.fecha = $scope.fecha;
+                        data.inicio_periodo = $scope.inicio_periodo;
+                        data.fin_periodo = $scope.fin_periodo;
+                        data.total = $scope.total;
+                        data.$save();
+                        window.location.href = '/index/';
+                    });
+                }
+                else {
+                    var nueva_factura = new Factura({
+                        codigo: $scope.codigo,
+                        cliente: $scope.cliente,
+                        fecha: $scope.fecha,
+                        inicio_periodo: $scope.inicio_periodo,
+                        fin_periodo: $scope.fin_periodo,
+                        total: $scope.total});
+                    nueva_factura.$save();
+                    window.location.href = '/index/';
+                }
+            };
+        }]);
+    </script>
+
+    <h3>Añadir nueva factura</h3>
+    <form ng-init="init()" class="item" ng-controller="myCtrl" validate>
+        {% csrf_token %}
+        <div class="formItem">
+            <span>{{ form.codigo.label }}</span>
+            {{ form.codigo }}
+        </div>
+        <div class="formItem">
+            <span>{{ form.cliente.label }}</span>
+            {{ form.cliente }}
+        </div>
+        <div class="formItem">
+            <span>{{ form.fecha.label }}</span>
+            {{ form.fecha }}
+        </div>
+        <div class="formItem">
+            <span>{{ form.inicio_periodo.label }}</span>
+            {{ form.inicio_periodo }}
+        </div>
+        <div class="formItem">
+            <span>{{ form.fin_periodo.label }}</span>
+            {{ form.fin_periodo }}
+        </div>
+        <div class="formItem">
+            <span>{{ form.total.label }}</span>
+            {{ form.total }}
+        </div>
+        <button ng-click="add()" class="btn btn-primary">Añadir factura</button>
+        <div class="clear"></div>
+    </form>
+{% endblock %}
